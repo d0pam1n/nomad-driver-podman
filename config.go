@@ -67,9 +67,10 @@ var (
 
 		// disable_log_collection indicates whether nomad should collect logs of podman
 		// task containers.  If true, logs are not forwarded to nomad.
-		"disable_log_collection": hclspec.NewAttr("disable_log_collection", "bool", false),
-		"client_http_timeout":    hclspec.NewAttr("client_http_timeout", "string", false),
-		"dns_servers":            hclspec.NewAttr("dns_servers", "list(string)", false),
+		"disable_log_collection":              hclspec.NewAttr("disable_log_collection", "bool", false),
+		"client_http_timeout":                 hclspec.NewAttr("client_http_timeout", "string", false),
+		"dns_servers":                         hclspec.NewAttr("dns_servers", "list(string)", false),
+		"container_stats_collection_interval": hclspec.NewAttr("container_stats_collection_interval", "string", false),
 	})
 
 	// taskConfigSpec is the hcl specification for the driver config section of
@@ -189,17 +190,18 @@ type PluginSocketConfig struct {
 
 // PluginConfig is the driver configuration set by the SetConfig RPC call
 type PluginConfig struct {
-	Auth                 PluginAuthConfig     `codec:"auth"`
-	Volumes              VolumeConfig         `codec:"volumes"`
-	GC                   GCConfig             `codec:"gc"`
-	RecoverStopped       bool                 `codec:"recover_stopped"`
-	DisableLogCollection bool                 `codec:"disable_log_collection"`
-	Socket               []PluginSocketConfig `codec:"socket"`
-	SocketPath           string               `codec:"socket_path"`
-	ClientHttpTimeout    string               `codec:"client_http_timeout"`
-	ExtraLabels          []string             `codec:"extra_labels"`
-	DNSServers           []string             `codec:"dns_servers"`
-	Logging              LoggingConfig        `codec:"logging"`
+	Auth                             PluginAuthConfig     `codec:"auth"`
+	Volumes                          VolumeConfig         `codec:"volumes"`
+	GC                               GCConfig             `codec:"gc"`
+	RecoverStopped                   bool                 `codec:"recover_stopped"`
+	DisableLogCollection             bool                 `codec:"disable_log_collection"`
+	Socket                           []PluginSocketConfig `codec:"socket"`
+	SocketPath                       string               `codec:"socket_path"`
+	ClientHttpTimeout                string               `codec:"client_http_timeout"`
+	ExtraLabels                      []string             `codec:"extra_labels"`
+	DNSServers                       []string             `codec:"dns_servers"`
+	Logging                          LoggingConfig        `codec:"logging"`
+	ContainerStatsCollectionInterval string               `codec:"container_stats_collection_interval"`
 }
 
 // LogWarnings will emit logs about known problematic configurations

@@ -17,23 +17,27 @@ import (
 )
 
 type API struct {
-	apiVersion       string
-	baseUrl          string
-	defaultPodman    bool
-	appArmor         bool
-	cgroupV2         bool
-	cgroupMgr        string
-	rootless         bool
-	httpClient       *http.Client
-	httpStreamClient *http.Client
-	logger           hclog.Logger
-	defaultTimeout   time.Duration
+	apiVersion                       string
+	baseUrl                          string
+	defaultPodman                    bool
+	appArmor                         bool
+	cgroupV2                         bool
+	cgroupMgr                        string
+	rootless                         bool
+	httpClient                       *http.Client
+	httpStreamClient                 *http.Client
+	logger                           hclog.Logger
+	defaultTimeout                   time.Duration
+	isContainerStatsCollectorRunning bool
+	containerStatsCollectInterval    time.Duration
+	containerStatsBroadcaster        StatsBroadcaster
 }
 
 type ClientConfig struct {
-	SocketPath    string
-	HttpTimeout   time.Duration
-	DefaultPodman bool
+	SocketPath                       string
+	HttpTimeout                      time.Duration
+	DefaultPodman                    bool
+	ContainerStatsCollectionInterval time.Duration
 }
 
 func DefaultClientConfig() ClientConfig {
@@ -66,6 +70,8 @@ func NewClient(logger hclog.Logger, config ClientConfig) *API {
 		ac.baseUrl = config.SocketPath
 	}
 
+	ac.containerStatsCollectInterval = config.ContainerStatsCollectionInterval
+
 	return ac
 }
 
@@ -83,6 +89,18 @@ func (c *API) IsDefaultClient() bool {
 
 func (c *API) SetClientAsDefault(d bool) {
 	c.defaultPodman = d
+}
+
+func (c *API) GetSocketPath() string {
+	return c.baseUrl
+}
+
+func (c *API) GetIsContainerStatsCollectorRunning() bool {
+	return c.isContainerStatsCollectorRunning
+}
+
+func (c *API) GetStatsBroadcaster() StatsBroadcaster {
+	return c.containerStatsBroadcaster
 }
 
 func (c *API) SetCgroupV2(isV2 bool) {

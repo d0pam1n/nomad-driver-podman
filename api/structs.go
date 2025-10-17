@@ -1589,3 +1589,41 @@ type Error struct {
 	Message  string `json:"message"`
 	Response int    `json:"response"`
 }
+
+// -------------------------------------------------------------------------------------------------------
+// structs copied from https://github.com/containers/podman/blob/master/libpod/define/containerstate.go
+// -------------------------------------------------------------------------------------------------------
+
+// ContainerStats contains the statistics information for a running container
+type ContainerStats struct {
+	AvgCPU        float64
+	ContainerID   string
+	Name          string
+	PerCPU        []uint64
+	CPU           float64
+	CPUNano       uint64
+	CPUSystemNano uint64
+	SystemNano    uint64
+	MemUsage      uint64
+	MemLimit      uint64
+	MemPerc       float64
+	// Map of interface name to network statistics for that interface.
+	Network     map[string]ContainerNetworkStats
+	BlockInput  uint64
+	BlockOutput uint64
+	PIDs        uint64
+	UpTime      time.Duration
+	Duration    uint64
+}
+
+// Statistics for an individual container network interface
+type ContainerNetworkStats struct {
+	RxBytes   uint64
+	RxDropped uint64
+	RxErrors  uint64
+	RxPackets uint64
+	TxBytes   uint64
+	TxDropped uint64
+	TxErrors  uint64
+	TxPackets uint64
+}

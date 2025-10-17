@@ -222,6 +222,14 @@ plugin "nomad-driver-podman" {
   }
 ```
 
+* container_stats_collection_interval* (duration) - (Optional) The interval at which container statistics (such as CPU and memory usage) are collected and reported. The value should be a duration string (e.g., `"1s"` for one second). Adjusting this interval can help balance between monitoring granularity and system overhead.
+
+```hcl
+config {
+  container_stats_collection_interval = "2s"
+}
+```
+
 ## Task Configuration
 
 * **image** - The image to run. Accepted transports are `docker` (default if missing), `oci-archive` and `docker-archive`. Images reference as [short-names](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md#short-name-aliasing) will be treated according to user-configured preferences.

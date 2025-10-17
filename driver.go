@@ -191,22 +191,31 @@ func (d *Driver) SetConfig(cfg *base.Config) error {
 		timeout = t
 	}
 
+	containerStatsCollectInterval := time.Duration(1) * time.Second // Set 1s as default interval if not configured otherwise
+	if pluginConfig.ContainerStatsCollectionInterval != "" {
+		ct, err := time.ParseDuration(pluginConfig.ContainerStatsCollectionInterval)
+		if err != nil {
+			return err
+		}
+		containerStatsCollectInterval = ct
+	}
+
 	switch {
 	case len(d.config.Socket) > 0 && d.config.SocketPath != "":
 		return fmt.Errorf("error: can't define socket blocks and socket_path, they're mutually exclusive.")
 	case len(d.config.Socket) > 0:
-		d.podmanClients = d.makePodmanClients(d.config.Socket, timeout)
+		d.podmanClients = d.makePodmanClients(d.config.Socket, timeout, containerStatsCollectInterval)
 	case d.config.SocketPath != "":
 		d.podmanClients = make(map[string]*api.API)
-		d.podmanClients["default"] = d.newPodmanClient(timeout, d.config.SocketPath, true)
+		d.podmanClients["default"] = d.newPodmanClient(timeout, d.config.SocketPath, true, containerStatsCollectInterval)
 		d.defaultPodman = d.podmanClients["default"]
 	default:
 		d.podmanClients = make(map[string]*api.API)
 		uid := os.Getuid()
 		if uid == 0 {
-			d.podmanClients["default"] = d.newPodmanClient(timeout, "unix:///run/podman/podman.sock", true)
+			d.podmanClients["default"] = d.newPodmanClient(timeout, "unix:///run/podman/podman.sock", true, containerStatsCollectInterval)
 		} else {
-			d.podmanClients["default"] = d.newPodmanClient(timeout, fmt.Sprintf("unix:///run/user/%d/podman/podman.sock", uid), true)
+			d.podmanClients["default"] = d.newPodmanClient(timeout, fmt.Sprintf("unix:///run/user/%d/podman/podman.sock", uid), true, containerStatsCollectInterval)
 		}
 		d.defaultPodman = d.podmanClients["default"]
 	}
@@ -215,7 +224,7 @@ func (d *Driver) SetConfig(cfg *base.Config) error {
 	return nil
 }
 
-func (d *Driver) makePodmanClients(sockets []PluginSocketConfig, timeout time.Duration) map[string]*api.API {
+func (d *Driver) makePodmanClients(sockets []PluginSocketConfig, timeout time.Duration, containerStatsCollectInterval time.Duration) map[string]*api.API {
 	podmanClients := make(map[string]*api.API)
 	var firstEntry *api.API
 	foundDefaultPodman := false
@@ -226,10 +235,10 @@ func (d *Driver) makePodmanClients(sockets []PluginSocketConfig, timeout time.Du
 		}
 		if sock.Name == "default" && !foundDefaultPodman {
 			foundDefaultPodman = true
-			podmanClient = d.newPodmanClient(timeout, sock.SocketPath, true)
+			podmanClient = d.newPodmanClient(timeout, sock.SocketPath, true, containerStatsCollectInterval)
 			d.defaultPodman = podmanClient
 		} else {
-			podmanClient = d.newPodmanClient(timeout, sock.SocketPath, false)
+			podmanClient = d.newPodmanClient(timeout, sock.SocketPath, false, containerStatsCollectInterval)
 		}
 		// Case when there are two socket blocks with the same name or
 		// if there's one with name="default" and one without name.
@@ -276,11 +285,12 @@ func (d *Driver) getPodmanClient(clientName string) (*api.API, error) {
 
 // newPodmanClient returns Podman client configured with the provided timeout.
 // This method must be called after the driver configuration has been loaded.
-func (d *Driver) newPodmanClient(timeout time.Duration, socketPath string, defaultPodman bool) *api.API {
+func (d *Driver) newPodmanClient(timeout time.Duration, socketPath string, defaultPodman bool, containerStatsCollectInterval time.Duration) *api.API {
 	clientConfig := api.DefaultClientConfig()
 	clientConfig.HttpTimeout = timeout
 	clientConfig.SocketPath = socketPath
 	clientConfig.DefaultPodman = defaultPodman
+	clientConfig.ContainerStatsCollectionInterval = containerStatsCollectInterval
 
 	return api.NewClient(d.logger, clientConfig)
 }
@@ -495,6 +505,8 @@ func (d *Driver) RecoverTask(handle *drivers.TaskHandle) error {
 	}
 
 	d.tasks.Set(handle.Config.ID, h)
+
+	taskPodmanClient.ContainerStatsStream(d.ctx)
 
 	go h.runContainerMonitor()
 	d.logger.Debug("Recovered container handle", "container", taskState.ContainerID, "podman client", podmanTaskSocketName)
@@ -1017,6 +1029,8 @@ func (d *Driver) StartTask(cfg *drivers.TaskConfig) (*drivers.TaskHandle, *drive
 	}
 
 	d.tasks.Set(cfg.ID, h)
+
+	podmanClient.ContainerStatsStream(d.ctx)
 
 	go h.runContainerMonitor()
 
